@@ -1,3 +1,13 @@
+/*======================== Filters ========================*/
+
+char gameModesStrs[4][4] =
+{
+    "Any",
+    "KZT",
+    "SKZ",
+    "Vnl"
+};
+
 char completionTypes[3][16] =
 {
     "NUB",
@@ -19,10 +29,13 @@ int pointSteps[3] =
     25
 };
 
+/*======================== Initializer ========================*/
+
 void InitFilters()
 {
-    MinTier = 1;
-    MaxTier = 7;
+    GameMode = int(Kzt); 
+    MinTier = GLOBAL_MIN_TIER;
+    MaxTier = GLOBAL_MAX_TIER;
     MinPoints = 0;
     MaxPoints = 1000;
     MapCompletionType = 0;
