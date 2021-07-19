@@ -1,4 +1,7 @@
 # Map Queue
-An unfinished map changing plugin for small KZT/GOKZ servers. Lets players with map changing permissions queue global maps based on various filters.
+An in development map changing plugin for small KZT/GOKZ servers. Lets players with map changing permissions queue global maps based on various filters.
 
-Forewarning this is my first time using github.
+## Dependencies
+- SourceMod: https://www.sourcemod.net/
+	- SteamWorks: http://users.alliedmods.net/~kyles/builds/SteamWorks/
+	- SMJansson: https://github.com/thraaawn/SMJansson/tree/master/pawn
