@@ -2,8 +2,8 @@
 
 #include "mapqueue/filters.sp"
 #include "mapqueue/menus.sp"
-#include "mapqueue/queue.sp"
 #include "mapqueue/mapdata.sp"
+#include "mapqueue/queue.sp"
 
 public Plugin myinfo =
 {
@@ -31,15 +31,17 @@ TODO:
 
 public void OnPluginStart()
 {
+    InitBufferHandlers();
     InitFilters();
-    // Initialize maps here when confirmed working
-
+    // InitMaps();
+    
     RegConsoleCmd("sm_filters", Command_SetFilters);
     RegConsoleCmd("sm_queue", Command_QueueMaps);
-
+    RegConsoleCmd("sm_loadMaps", Command_LoadMaps);
+    
     // RegConsoleCmd("sm_inqueue", Command_PrintMapsInQueue);
     // RegConsoleCmd("sm_frontmap", Command_GoToFrontMap);
-
+    
     CreateConVar("mq_version", MQ_VERSION, "Map Queue Plugin version", FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
 }
 
@@ -53,7 +55,12 @@ public Action Command_SetFilters(int client, int args)
 
 public Action Command_QueueMaps(int client, int args)
 {
-    // currently being used to test InitMaps
+    queueFilters(client);
+    return Plugin_Handled;
+}
+
+public Action Command_LoadMaps(int client, int args)
+{
     InitMaps();
     return Plugin_Handled;
 }

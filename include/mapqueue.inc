@@ -34,6 +34,10 @@ Menu pointsMenu;
 Menu getStepMenu;
 
 // Variables
+int BufferHandler;
+DataPack BufferHandlerStoreMaps;
+DataPack BufferHandlerMapMaps;
+
 bool minValueNotPicked;
 
 int pickingStatus;
@@ -41,6 +45,20 @@ int pointStep;
 
 
 // Enums
+
+enum struct Map
+{
+    int id;
+    char name[32];
+    int difficulty;
+    char created_on[32];
+}
+
+enum BufferHandlers
+{
+    storeMaps,
+    mapMaps
+}
 
 enum pickingStatuses
 {
@@ -51,7 +69,7 @@ enum pickingStatuses
 
 enum mapAttributeKeys
 {
-    id = 0,
+    id,
     name,
     difficulty,
     created_on,
@@ -59,7 +77,22 @@ enum mapAttributeKeys
 
 enum gameModesInts
 {
+    AnyGameMode,
     Kzt,
     Skz,
     Vnl
+}
+
+enum completionTypesInts
+{
+    NUB,
+    Pro,
+    Tp
+}
+
+enum completionStatusesInts
+{
+    AnyCompletion,
+    Completed,
+    NotCompleted
 }

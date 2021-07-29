@@ -33,11 +33,11 @@ int pointSteps[3] =
 
 void InitFilters()
 {
-    GameMode = int(Kzt); 
+    GameMode = AnyGameMode; 
     MinTier = GLOBAL_MIN_TIER;
     MaxTier = GLOBAL_MAX_TIER;
     MinPoints = 0;
     MaxPoints = 1000;
-    MapCompletionType = 0;
-    MapCompletionStatus = 0;
+    MapCompletionType = NUB;
+    MapCompletionStatus = AnyCompletion;
 }

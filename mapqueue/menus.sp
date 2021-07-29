@@ -13,17 +13,17 @@ public int filterMenuHandler(Menu menu, MenuAction action, int param1, int param
             if(StrEqual(info, "GameMode"))
             {
                 GameMode = (GameMode + 1) % 4;
-                ClientCommand(param1, "sm_set_filters");
+                BuildFilterMenu(param1);
             }
-            else if (StrEqual(info, "CompType"))
+            else if(StrEqual(info, "CompType"))
             {
                 MapCompletionType = (MapCompletionType + 1) % 3;
-                ClientCommand(param1, "sm_set_filters");
+                BuildFilterMenu(param1);
             }
-            else if (StrEqual(info, "CompStatus"))
+            else if(StrEqual(info, "CompStatus"))
             {
                 MapCompletionStatus = (MapCompletionStatus + 1) % 3;
-                ClientCommand(param1, "sm_set_filters");
+                BuildFilterMenu(param1);
             }
             else if(StrEqual(info, "Tiers"))
             {
@@ -42,7 +42,8 @@ public int filterMenuHandler(Menu menu, MenuAction action, int param1, int param
             menu.GetItem(param2, info, sizeof(info), style);
 
             if(StrEqual(info, "Points") && 
-               StrEqual(completionStatuses[MapCompletionStatus], "Not completed"))
+               ((MapCompletionStatus == int(AnyCompletion)) ||
+                (MapCompletionStatus == int(NotCompleted))))
             {
                 return ITEMDRAW_DISABLED;
             }
@@ -88,7 +89,8 @@ public int filterMenuHandler(Menu menu, MenuAction action, int param1, int param
             }
             else if(StrEqual(info, "Points"))
             {
-                if(StrEqual(completionStatuses[MapCompletionStatus], "Not completed"))
+                if(MapCompletionStatus == int(AnyCompletion) ||
+				   MapCompletionStatus == int(NotCompleted))
                 {
                     Format(display, sizeof(display), "Points: n/a");
                 }
@@ -135,7 +137,7 @@ public int RangeSelectionHandler(Menu menu, MenuAction action, int param1, int p
                         pickingStatus = notPicking;
                         MinPoints = value;
                         MaxPoints = value;
-                        ClientCommand(param1, "sm_set_filters");
+                        BuildFilterMenu(param1);
                     }
                     else
                     {
@@ -157,7 +159,7 @@ public int RangeSelectionHandler(Menu menu, MenuAction action, int param1, int p
 
                 minValueNotPicked = true;
                 pickingStatus = notPicking;
-                ClientCommand(param1, "sm_set_filters");
+                BuildFilterMenu(param1);
             }
         }
         
