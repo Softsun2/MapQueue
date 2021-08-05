@@ -14,8 +14,11 @@
 
 // char ChatPrefix[] = "[SS2] ";
 
-// Lists 
-ArrayList MapsPerTier[GLOBAL_MAX_TIER];
+// Map Constainers 
+ArrayList GlobalMaps[GLOBAL_MAX_TIER];
+StringMap RelatedRecordsMap;
+ArrayList RelatedRecordsList;
+ArrayList MapQueue; // slow but only rearranging array on a map change
 
 // Map Filters
 int MinTier;
@@ -34,45 +37,33 @@ Menu pointsMenu;
 Menu getStepMenu;
 
 // Variables
+int myClient;
 int BufferHandler;
 DataPack BufferHandlerStoreMaps;
-DataPack BufferHandlerMapMaps;
-
+DataPack BufferHandlerMapRecords;
 bool minValueNotPicked;
-
-int pickingStatus;
-int pointStep;
-
 
 // Enums
 
 enum struct Map
 {
-    int id;
     char name[32];
     int difficulty;
     char created_on[32];
 }
 
+enum struct Record
+{
+    int id;
+    char map_name[32];
+    float time;
+    int points;
+}
+
 enum BufferHandlers
 {
     storeMaps,
-    mapMaps
-}
-
-enum pickingStatuses
-{
-    notPicking,
-    pickingTiers,
-    pickingPoints
-}
-
-enum mapAttributeKeys
-{
-    id,
-    name,
-    difficulty,
-    created_on,
+    mapRecords
 }
 
 enum gameModesInts

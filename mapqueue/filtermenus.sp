@@ -1,3 +1,53 @@
+/*======================== Variables ========================*/
+
+static int pickingStatus;
+static int pointStep;
+
+enum pickingStatuses
+{
+    notPicking,
+    pickingTiers,
+    pickingPoints
+}
+static char gameModesStrs[4][4] =
+{
+    "Any",
+    "KZT",
+    "SKZ",
+    "Vnl"
+};
+static char completionTypes[3][16] =
+{
+    "NUB",
+    "Pro",
+    "Tp"
+};
+static char completionStatuses[3][16] = 
+{
+    "Any",
+    "Completed",
+    "Not completed"
+};
+static int pointSteps[3] =
+{
+    100,
+    50,
+    25
+};
+
+/*======================== Initializer ========================*/
+
+void InitFilters()
+{
+    GameMode = AnyGameMode; 
+    MinTier = GLOBAL_MIN_TIER;
+    MaxTier = GLOBAL_MAX_TIER;
+    MinPoints = 0;
+    MaxPoints = 1000;
+    MapCompletionType = NUB;
+    MapCompletionStatus = AnyCompletion;
+}
+
 /*======================== Menu Handlers ========================*/
 
 public int filterMenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -9,20 +59,21 @@ public int filterMenuHandler(Menu menu, MenuAction action, int param1, int param
             char info[32];
             menu.GetItem(param2, info, sizeof(info));
             delete menu;
-
+            
             if(StrEqual(info, "GameMode"))
             {
                 GameMode = (GameMode + 1) % 4;
                 BuildFilterMenu(param1);
             }
-            else if(StrEqual(info, "CompType"))
-            {
-                MapCompletionType = (MapCompletionType + 1) % 3;
-                BuildFilterMenu(param1);
-            }
+            
             else if(StrEqual(info, "CompStatus"))
             {
                 MapCompletionStatus = (MapCompletionStatus + 1) % 3;
+                BuildFilterMenu(param1);
+            }
+            else if(StrEqual(info, "CompType"))
+            {
+                MapCompletionType = (MapCompletionType + 1) % 3;
                 BuildFilterMenu(param1);
             }
             else if(StrEqual(info, "Tiers"))
@@ -34,45 +85,50 @@ public int filterMenuHandler(Menu menu, MenuAction action, int param1, int param
                 BuildGetStepMenu(param1);
             }
         }
-
+        
         case MenuAction_DrawItem:
         {
             int style;
             char info[32];
             menu.GetItem(param2, info, sizeof(info), style);
-
-            if(StrEqual(info, "Points") && 
-               ((MapCompletionStatus == int(AnyCompletion)) ||
-                (MapCompletionStatus == int(NotCompleted))))
+            
+            
+            if(StrEqual(info, "CompType") &&
+               MapCompletionStatus != int(Completed))
+            {
+                return ITEMDRAW_DISABLED;
+            }
+            else if(StrEqual(info, "Points") && 
+                    MapCompletionStatus != int(Completed))
             {
                 return ITEMDRAW_DISABLED;
             }
             return style;
         }
-
+        
         case MenuAction_DisplayItem:
         {
             char info[32];
             menu.GetItem(param2, info, sizeof(info));
-
+            
             char display[64];
-
+            
             if(StrEqual(info, "GameMode"))
             {
                 Format(display, sizeof(display), "Game Mode: %s",
                        gameModesStrs[GameMode]);
                 return RedrawMenuItem(display);
             }
-            else if(StrEqual(info, "CompType"))
-            {
-                Format(display, sizeof(display), "Completion Type: %s",
-                       completionTypes[MapCompletionType]);
-                return RedrawMenuItem(display);
-            }
             else if(StrEqual(info, "CompStatus"))
             {
                 Format(display, sizeof(display), "Completion Status: %s",
                        completionStatuses[MapCompletionStatus]);
+                return RedrawMenuItem(display);
+            }
+            else if(StrEqual(info, "CompType"))
+            {
+                Format(display, sizeof(display), "Completion Type: %s",
+                       completionTypes[MapCompletionType]);
                 return RedrawMenuItem(display);
             }
             else if(StrEqual(info, "Tiers"))
@@ -119,11 +175,11 @@ public int RangeSelectionHandler(Menu menu, MenuAction action, int param1, int p
             menu.GetItem(param2, info, sizeof(info));
             delete menu;
             int value = StringToInt(info);
-
+            
             if(minValueNotPicked)
             {
                 minValueNotPicked = false;
-
+                
                 if(pickingStatus == int(pickingTiers))
                 {
                     MinTier = value;
@@ -156,7 +212,7 @@ public int RangeSelectionHandler(Menu menu, MenuAction action, int param1, int p
                 {
                     MaxPoints = value;
                 }
-
+                
                 minValueNotPicked = true;
                 pickingStatus = notPicking;
                 BuildFilterMenu(param1);
@@ -168,7 +224,7 @@ public int RangeSelectionHandler(Menu menu, MenuAction action, int param1, int p
             int style;
             char info[32];
             menu.GetItem(param2, info, sizeof(info), style);
-
+            
             if(!minValueNotPicked)
             {
                 if(pickingStatus == int(pickingTiers))
@@ -201,7 +257,7 @@ public int GetStepMenuHandler(Menu menu, MenuAction action, int param1, int para
         menu.GetItem(param2, info, sizeof(info));
         delete menu;
         pointStep = StringToInt(info);
-
+        
         BuildPointsMenu(param1);
     }
     return 0;
@@ -212,12 +268,12 @@ public int GetStepMenuHandler(Menu menu, MenuAction action, int param1, int para
 void BuildFilterMenu(int client)
 {
     minValueNotPicked = true;
-
+    
     filterMenu = new Menu(filterMenuHandler, MENU_ACTIONS_ALL);
     filterMenu.SetTitle("Map Queue Filters");
     filterMenu.AddItem("GameMode", "Game Mode: ");
-    filterMenu.AddItem("CompType", "Completion Type: ");
     filterMenu.AddItem("CompStatus", "Completion Status: ");
+    filterMenu.AddItem("CompType", "Completion Type: ");
     filterMenu.AddItem("Tiers", "Tier(s):");
     filterMenu.AddItem("Points", "Points: ");
     filterMenu.AddItem("MapAge", "Map Age: ", ITEMDRAW_DISABLED);
@@ -228,7 +284,7 @@ void BuildFilterMenu(int client)
 void BuildTiersMenu(int client)
 {
     pickingStatus = pickingTiers;
-
+    
     tiersMenu = new Menu(RangeSelectionHandler, MENU_ACTIONS_ALL);
     if(minValueNotPicked)
     {
@@ -238,10 +294,10 @@ void BuildTiersMenu(int client)
     {
         tiersMenu.SetTitle("Choose Maximum Tier:");
     }
-
+    
     char tierBuffer[4];
     char display[8];
-
+    
     for(int i = 1; i <= 7; i++)
     {
         IntToString(i, tierBuffer, sizeof(tierBuffer));
@@ -255,7 +311,7 @@ void BuildTiersMenu(int client)
 void BuildPointsMenu(int client)
 {
     pickingStatus = pickingPoints;
-
+    
     pointsMenu = new Menu(RangeSelectionHandler, MENU_ACTIONS_ALL);
     if(minValueNotPicked)
     {
@@ -265,10 +321,10 @@ void BuildPointsMenu(int client)
     {
         pointsMenu.SetTitle("Choose Maximum Points:");
     }
-
+    
     char pointsBuffer[8];
     char display[8];
-
+    
     for(int points = 1000; points >= 0; points -= pointStep)
     {
         IntToString(points, pointsBuffer, sizeof(pointsBuffer));
@@ -283,10 +339,10 @@ void BuildGetStepMenu(int client)
 {
     getStepMenu = new Menu(GetStepMenuHandler, MENU_ACTIONS_ALL);
     getStepMenu.SetTitle("Choose Points Step:");
-
+    
     char stepBuffer[8];
     char display[16];
-
+    
     for(int i = 0; i < 3; i++)
     {
         IntToString(pointSteps[i], stepBuffer, sizeof(stepBuffer));

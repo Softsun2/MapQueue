@@ -1,7 +1,6 @@
 #include <mapqueue>
 
-#include "mapqueue/filters.sp"
-#include "mapqueue/menus.sp"
+#include "mapqueue/filtermenus.sp"
 #include "mapqueue/mapdata.sp"
 #include "mapqueue/queue.sp"
 
@@ -11,29 +10,29 @@ public Plugin myinfo =
 	author = "Softsun2",
 	description = "Provides Map Queueing",
 	version = MQ_VERSION,
-	url = "wip"
+	url = "https://github.com/Softsun2/MapQueue"
 };
-
 
 /*
 TODO:
-    Initialize maps √
-    Queueing:
-        command not a menu √
-        queue on filters X
-    Menu Filters √ (for now)
-        add filter by date in the future possibly
+add map completion time filter
+        add date created/ map release filter
+
+#DEFINE char length constants
+
+redraw MapCompletionType white when MapCompletionStatus is Any
 
     KNOWN BUGS:
-        none atm
+        "ghost buffer" in HTTPRequestCompleted_Maps
 */
-
 
 public void OnPluginStart()
 {
     InitBufferHandlers();
     InitFilters();
-    // InitMaps();
+    InitMaps();
+    
+    RelatedRecordsMap = new StringMap();
     
     RegConsoleCmd("sm_filters", Command_SetFilters);
     RegConsoleCmd("sm_queue", Command_QueueMaps);
@@ -55,13 +54,24 @@ public Action Command_SetFilters(int client, int args)
 
 public Action Command_QueueMaps(int client, int args)
 {
-    queueFilters(client);
+    // queueFilters(client);
+    // testing requesting RelatedRecordsMap
+    
+    myClient = client;
+    char sURL[512];
+    getFilterRequestURL(client, sURL, sizeof(sURL));
+    PrintToConsole(client, "%s", sURL);
+    BufferHandler = int(mapRecords);
+    createRequest(sURL);
+    
+    RelatedRecordsMap.Clear();
+    
     return Plugin_Handled;
 }
 
 public Action Command_LoadMaps(int client, int args)
 {
-    InitMaps();
+    printGlobalKzMapsToConsole();
     return Plugin_Handled;
 }
 
