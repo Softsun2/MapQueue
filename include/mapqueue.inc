@@ -38,16 +38,16 @@ Menu getStepMenu;
 
 // Variables
 int myClient;
-int BufferHandler;
-DataPack BufferHandlerStoreMaps;
-DataPack BufferHandlerMapRecords;
+int RequestHandler;
+DataPack RequestHandlerStoreMaps;
+DataPack RequestHandlerMapRecords;
 bool minValueNotPicked;
 
 // Enums
 
 enum struct Map
 {
-    char name[32];
+    char name[PLATFORM_MAX_PATH];
     int difficulty;
     char created_on[32];
 }
@@ -55,15 +55,15 @@ enum struct Map
 enum struct Record
 {
     int id;
-    char map_name[32];
+    char map_name[PLATFORM_MAX_PATH];
     float time;
     int points;
 }
 
-enum BufferHandlers
+enum RequestHandlers
 {
     storeMaps,
-    mapRecords
+    storeRecords
 }
 
 enum gameModesInts

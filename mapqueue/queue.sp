@@ -6,21 +6,21 @@ static char gameModeStrsForAPI[3][16] =
     "kz_simple",
     "kz_vanilla"
 };
-static bool storeRecordsToMap;
+bool storeRecordsToMap;
 
 /*======================== Utilities ========================*/
 
-void InitBufferHandlers()
+void InitRequestHandlers()
 {
-    BufferHandlerStoreMaps = new DataPack();
-    BufferHandlerStoreMaps.WriteFunction(storeMapJsonData);
-    BufferHandlerMapRecords = new DataPack();
-    BufferHandlerMapRecords.WriteFunction(mapRecordJsonData);
+    RequestHandlerStoreMaps = new DataPack();
+    RequestHandlerStoreMaps.WriteFunction(storeMapJsonData);
+    RequestHandlerMapRecords = new DataPack();
+    RequestHandlerMapRecords.WriteFunction(mapRecordJsonData);
 }
 
-void createRequest(const char[] sURL)
+void createRequest(const char[] requestURL)
 {
-    Handle request = SteamWorks_CreateHTTPRequest(k_EHTTPMethodGET, sURL); 
+    Handle request = SteamWorks_CreateHTTPRequest(k_EHTTPMethodGET, requestURL); 
     if(request != INVALID_HANDLE)
     {
         if (!SteamWorks_SetHTTPCallbacks(request, HTTPRequestCompleted_Maps) || !SteamWorks_SendHTTPRequest(request))
@@ -40,16 +40,16 @@ void HTTPRequestCompleted_Maps(Handle request, bool failure, bool requestSuccess
             static char buffer[512000];
             if((size < sizeof(buffer)) && SteamWorks_GetHTTPResponseBodyData(request, buffer, size))
             {
-                Format(buffer[size], sizeof(buffer)-size, "");  // temp fix for weird "ghost buffer" issue
-                if(BufferHandler == int(storeMaps))
+                Format(buffer[size], sizeof(buffer)-size, "");  // NOTE(Softsun2): temp fix for weird "ghost buffer" issue
+                if(RequestHandler == int(storeMaps))
                 {
-                    BufferHandlerStoreMaps.Reset();
-                    Call_StartFunction(INVALID_HANDLE, BufferHandlerStoreMaps.ReadFunction());
+                    RequestHandlerStoreMaps.Reset();
+                    Call_StartFunction(INVALID_HANDLE, RequestHandlerStoreMaps.ReadFunction());
                 }
                 else
                 {
-                    BufferHandlerMapRecords.Reset();
-                    Call_StartFunction(INVALID_HANDLE, BufferHandlerMapRecords.ReadFunction());
+                    RequestHandlerMapRecords.Reset();
+                    Call_StartFunction(INVALID_HANDLE, RequestHandlerMapRecords.ReadFunction());
                 }
                 Call_PushString(buffer);
                 Call_Finish();
@@ -59,17 +59,33 @@ void HTTPRequestCompleted_Maps(Handle request, bool failure, bool requestSuccess
     }
 }
 
+void gotoNextInQueue(int client)
+{
+    if(MapQueue.Length > 0)
+    {
+        char mapName[PLATFORM_MAX_PATH];
+        MapQueue.GetString(0, mapName, PLATFORM_MAX_PATH);
+        FakeClientCommand(client, "sm_map %s", mapName); 
+    }
+    else
+    {
+        PrintToConsole(client, "No maps in queue.");
+    }
+}
+
 /*======================== Storing All Global Maps ========================*/
 
 void InitMaps()
 {
     for(int i = 0; i < GLOBAL_MAX_TIER; i++)
     {
-        GlobalMaps[i] = CreateArray(ByteCountToCells(PLATFORM_MAX_PATH));
+        GlobalMaps[i] = CreateArray(sizeof(Map));
     }
-    char sURL[] = "https://kztimerglobal.com/api/v2/maps?is_validated=true&limit=15";
-    BufferHandler = int(storeMaps);
-    createRequest(sURL);
+    
+    //char requestURL[] = "https://kztimerglobal.com/api/v2/maps?is_validated=true&limit=15";
+    char requestURL[] = "https://kztimerglobal.com/api/v2/maps?is_validated=true";
+    RequestHandler = int(storeMaps);
+    createRequest(requestURL);
 }
 
 void storeMapJsonData(const char[] buffer)
@@ -101,7 +117,6 @@ void storeMapJsonData(const char[] buffer)
 
 void queueFilters(int client)
 {
-    // Make and delete string map on the start and end of this function if needed
     if(MapQueue == INVALID_HANDLE)
     {
         MapQueue = CreateArray(ByteCountToCells(PLATFORM_MAX_PATH));
@@ -114,55 +129,101 @@ void queueFilters(int client)
     // case 0: queue from GlobalMaps
     if(MapCompletionStatus == int(AnyCompletion))
     {
+        PrintToConsole(client, "In case 0");
         for(int tier = MinTier-1; tier < MaxTier; tier++)
         {
-            int tierLength = GlobalKzMaps[tier].Length;
+            int tierLength = GlobalMaps[tier].Length;
             for(int i = 0; i < tierLength; i++)
             {
                 Map map;
-                GlobalKzMaps[tier].GetArray(i, map, sizeof(map));
-                MapQueue.PushArray(map, sizeof(map));
+                GlobalMaps[tier].GetArray(i, map, sizeof(map));
+                MapQueue.PushString(map.name);
             }
         }
     }
     
-    // case 1: queue from RelatedRecordsList
-    else if(MapCompletionStatus == int(Completed) &&
-            MaxTier == GLOBAL_MAX_TIER &&
-            MinTier == GLOBAL_MIN_TIER)
-    {
-        storeRecordsToMap = false;
-        
-        RelatedRecordsList.Clear();
-    }
-    
-    // case 2: queue from GloablMaps(RelatedRecordsMap)
     else
     {
-        //     subcase 0:
-        //         compare GlobalMaps against RelatedRecordsMap
-        if(MapCompletionStatus == int(NotCompleted))
+        char requestURL[512];
+        getFilterRequestURL(client, requestURL, sizeof(requestURL));
+        RequestHandler = int(storeRecords);
+        
+        // case 1: queue from RelatedRecordsList note this isn't really needed but it makes things a little faster
+        if(MapCompletionStatus == int(Completed) &&
+           MinTier == GLOBAL_MIN_TIER &&
+           MaxTier == GLOBAL_MAX_TIER)
         {
+            PrintToConsole(client, "In case 1");
+            storeRecordsToMap = false;
+            createRequest(requestURL);
+            int length = RelatedRecordsList.Length;
             
+            for(int i = 0; i < length; i++)
+            {
+                Record record;
+                RelatedRecordsList.GetArray(i, record);
+                if(MinPoints <= record.points && record.points <= MaxPoints)
+                {
+                    MapQueue.PushString(record.map_name);
+                }
+            }
+            
+            RelatedRecordsList.Clear();
         }
         
-        //     subcase 1:
-        //         compare GlobalMaps with RelatedRecordsMap
+        // case 2: queue from GloablMaps(RelatedRecordsMap)
         else
         {
+            storeRecordsToMap = true;
+            createRequest(requestURL);
+            //     subcase 0:
+            //         compare GlobalMaps against RelatedRecordsMap
+            if(MapCompletionStatus == int(NotCompleted))
+            {
+                PrintToConsole(client, "In case 2a");
+                for(int tier = MinTier-1; tier < MaxTier; tier++)
+                {
+                    int tierLength = GlobalMaps[tier].Length;
+                    for(int i = 0; i < tierLength; i++)
+                    {
+                        Map map;
+                        Record record;
+                        GlobalMaps[tier].GetArray(i, map, sizeof(map));
+                        if(!RelatedRecordsMap.GetArray(map.name, record, sizeof(record)))
+                        {
+                            MapQueue.PushString(map.name);
+                        }
+                    }
+                }
+            }
             
+            //     subcase 1:
+            //         compare GlobalMaps with RelatedRecordsMap
+            else
+            {
+                PrintToConsole(client, "In case 2b");
+                for(int tier = MinTier-1; tier < MaxTier; tier++)
+                {
+                    int tierLength = GlobalMaps[tier].Length;
+                    for(int i = 0; i < tierLength; i++)
+                    {
+                        Map map;
+                        Record record;
+                        GlobalMaps[tier].GetArray(i, map, sizeof(map));
+                        if(RelatedRecordsMap.GetArray(map.name, record, sizeof(record)))
+                        {
+                            if(MinPoints <= record.points && record.points <= MaxPoints)
+                            {
+                                MapQueue.PushString(map.name);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            RelatedRecordsMap.Clear();
         }
-        
-        RelatedRecordsMap.Clear();
     }
-    
-    /*char sURL[512];
-    getFilterRequestURL(client, sURL, sizeof(sURL));
-    PrintToServer("%s", sURL);*/
-    
-    
-    BufferHandler = int(mapMaps);
-    createRequest(sURL);
 }
 
 void getFilterRequestURL(int client, char[] requestBuffer, int requestBufferSize)
@@ -179,6 +240,11 @@ void getFilterRequestURL(int client, char[] requestBuffer, int requestBufferSize
     IntToString(RoundToFloor(1.0 / GetTickInterval()), tickrate, sizeof(tickrate));
     StrCat(requestBuffer, requestBufferSize, "&tickrate=");
     StrCat(requestBuffer, requestBufferSize, tickrate);
+    
+    // TODO(Softsun2): make this a filter in the future as of now stage = 0
+    char stage[16];
+    Format(stage, sizeof(stage), "&stage=0");
+    StrCat(requestBuffer, requestBufferSize, stage);
     
     if(GameMode != int(AnyGameMode))
     {
@@ -203,7 +269,9 @@ void getFilterRequestURL(int client, char[] requestBuffer, int requestBufferSize
     }
     
     // temp limit while debugging
-    StrCat(requestBuffer, requestBufferSize, "&limit=15");
+    // StrCat(requestBuffer, requestBufferSize, "&limit=15");
+    
+    PrintToServer("%s", requestBuffer);
 }
 
 void mapRecordJsonData(const char[] buffer)
