@@ -70,3 +70,20 @@ void printGlobalKzMapsToConsole()
         }
     }
 }
+
+//void printRelatedRecordsMapToConsole()
+//{
+//StringMapSnapshot snapshot = RelatedRecordsMap.Snapshot();
+//int length = snapshot.Length;
+//
+//for(int i = 0; i < length; i++)
+//{
+//char map_name[PLATFORM_MAX_PATH];
+//snapshot.GetKey(i, map_name, PLATFORM_MAX_PATH);
+//PrintToConsole(myClient,
+//"RelatedRecordsMap map_name: %s",
+//map_name);
+//}
+//
+//delete snapshot;
+//}

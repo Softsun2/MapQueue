@@ -16,18 +16,27 @@ public Plugin myinfo =
 /*
 TODO:
 add map completion time filter
-add date created/ map release filter
-#DEFINE char length constants
+add date-created/map-release filter
+add map stage filter
 
-**filter by map stage
+#DEFINE char length constants
 need to unique map names to be able to map records to map names
 
-remove unnecessary global variables (not sure why I made like everything global ??)
-clean up things
+remove unnecessary globals
+
+*itemdraw_disabled Game Mode when CompStatus is Any
+*display: n/a for all itemdraw_diabled items
+*check cmds don't cause exceptions when called in unlikely orders
+*allow selection of CompType when CompStatus is NotCompleted
 
 KNOWN BUGS:
-        the api has ambigous maximum response lengths so need to fix how to get all the maps...
-going to take multiple requests. maybe have a while loop whose condition mods on the max response length?
+*PrintMapsInQueue only displays ~112 maps (probably a console print limit)
+*Very rarely causes a timeout exception (stumped on this one)
+*SteamWorks_GetHTTPResponseBodyData uses a Weird ghost buffer to write to the intended buffer
+(this has been temporarily fixed for now)
+*Filtering with CompStatus Completed results in an innacurate MapQueue, GlobalAPI doesn't respond
+ with the all of a player records with the given request url (API is kinda broken going to
+ have to make many requests instead of one to get all records)
 */
 
 public void OnPluginStart()
@@ -36,6 +45,7 @@ public void OnPluginStart()
     InitFilters();
     InitMaps();
     
+    MapQueue = CreateArray(ByteCountToCells(PLATFORM_MAX_PATH));
     RelatedRecordsMap = new StringMap();
     
     RegConsoleCmd("sm_filters", Command_SetFilters);
@@ -60,6 +70,7 @@ public Action Command_SetFilters(int client, int args)
 
 public Action Command_QueueMaps(int client, int args)
 {
+    myClient = client;
     queueFilters(client);
     return Plugin_Handled;
 }
@@ -68,7 +79,6 @@ public Action Command_TestRequest(int client, int args)
 {
     // queueFilters(client);
     // testing requesting RelatedRecordsMap
-    storeRecordsToMap = true;
     myClient = client;
     char sURL[512];
     getFilterRequestURL(client, sURL, sizeof(sURL));
@@ -86,6 +96,7 @@ public Action Command_PrintMapsInQueue(int client, int args)
     PrintToChat(client, "See console for maps in queue.");
     
     int mapQueueLength = MapQueue.Length;
+    PrintToConsole(client, "Map Queue length: %d", mapQueueLength);
     for(int i = 0; i < mapQueueLength; i++)
     {
         char mapName[PLATFORM_MAX_PATH];

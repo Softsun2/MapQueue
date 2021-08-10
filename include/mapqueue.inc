@@ -9,7 +9,7 @@
 
 #define GLOBAL_MIN_TIER 1
 #define GLOBAL_MAX_TIER 7
-
+#define REQUEST_LIMIT 2000
 #define int(%1)     view_as<int>(%1)
 
 // char ChatPrefix[] = "[SS2] ";
@@ -17,7 +17,6 @@
 // Map Constainers 
 ArrayList GlobalMaps[GLOBAL_MAX_TIER];
 StringMap RelatedRecordsMap;
-ArrayList RelatedRecordsList;
 ArrayList MapQueue; // slow but only rearranging array on a map change
 
 // Map Filters
